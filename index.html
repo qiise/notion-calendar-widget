@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>This Week</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: transparent !important;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #37352f;
+      overflow: hidden;
+    }
+
+    .widget {
+      width: 100%;
+      padding: 5px 4px 3px;
+      background: transparent;
+    }
+
+    .week {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+      position: relative;
+    }
+
+    .day {
+      position: relative;
+      min-width: 0;
+      padding: 10px 2px 9px;
+      text-align: center;
+      border: 1px solid rgba(125, 125, 125, 0.13);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.20);
+      backdrop-filter: blur(7px);
+      -webkit-backdrop-filter: blur(7px);
+    }
+
+    /* Minimal pearly star treatment for today */
+    .day.today {
+      border-color: rgba(179, 169, 205, 0.45);
+      background:
+        radial-gradient(circle at 25% 12%, rgba(255,255,255,.88), transparent 28%),
+        linear-gradient(135deg,
+          rgba(229,241,255,.64),
+          rgba(255,239,247,.55),
+          rgba(244,239,255,.65),
+          rgba(255,248,226,.50));
+    }
+
+    .weekday {
+      display: block;
+      font-size: 10px;
+      line-height: 1;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      opacity: 0.48;
+    }
+
+    .date {
+      display: block;
+      margin-top: 6px;
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 600;
+    }
+
+    .today-star {
+      position: absolute;
+      top: 3px;
+      right: 6px;
+      font-size: 8px;
+      opacity: 0.55;
+    }
+
+    /* Tiny decorative stars: intentionally sparse */
+    .decor {
+      position: absolute;
+      pointer-events: none;
+      user-select: none;
+      color: currentColor;
+      opacity: 0.22;
+      line-height: 1;
+    }
+
+    .star-a { left: 1px; top: -3px; font-size: 9px; }
+    .star-b { right: 1px; bottom: -5px; font-size: 11px; }
+    .star-c { left: 49%; top: -4px; font-size: 6px; opacity: .16; }
+
+    .footer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 7px;
+      margin-top: 7px;
+      font-size: 10px;
+      opacity: 0.43;
+    }
+
+    .footer-star {
+      font-size: 7px;
+      opacity: .65;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      html, body { color: #e8e7e4; }
+
+      .day {
+        background: rgba(255,255,255,.035);
+        border-color: rgba(255,255,255,.09);
+      }
+
+      .day.today {
+        border-color: rgba(214,202,238,.35);
+        background:
+          radial-gradient(circle at 25% 12%, rgba(255,255,255,.16), transparent 28%),
+          linear-gradient(135deg,
+            rgba(130,155,190,.19),
+            rgba(180,130,155,.15),
+            rgba(145,125,185,.19),
+            rgba(190,165,115,.12));
+      }
+    }
+
+    @media (max-width: 420px) {
+      .week { gap: 3px; }
+      .day { border-radius: 11px; padding: 9px 1px 8px; }
+      .weekday { font-size: 9px; letter-spacing: .06em; }
+      .date { font-size: 16px; }
+      .today-star { right: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="widget">
+    <div class="week" id="week" aria-label="Current week, Sunday through Saturday">
+      <span class="decor star-a" aria-hidden="true">✦</span>
+      <span class="decor star-b" aria-hidden="true">✧</span>
+      <span class="decor star-c" aria-hidden="true">✦</span>
+    </div>
+    <div class="footer">
+      <span class="footer-star" aria-hidden="true">✧</span>
+      <span id="range"></span>
+      <span class="footer-star" aria-hidden="true">✧</span>
+    </div>
+  </main>
+
+  <script>
+    const week = document.getElementById("week");
+    const range = document.getElementById("range");
+    const now = new Date();
+
+    const dateKey = d =>
+      `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+
+    const todayKey = dateKey(now);
+
+    // Sunday is the first day of the displayed week.
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - now.getDay());
+    sunday.setHours(12, 0, 0, 0);
+
+    const weekdayFormatter =
+      new Intl.DateTimeFormat("en-US", { weekday: "short" });
+    const monthFormatter =
+      new Intl.DateTimeFormat("en-US", { month: "long" });
+
+    const dates = [];
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(sunday);
+      d.setDate(sunday.getDate() + i);
+      dates.push(d);
+
+      const isToday = dateKey(d) === todayKey;
+      const cell = document.createElement("div");
+      cell.className = `day${isToday ? " today" : ""}`;
+
+      if (isToday) {
+        cell.setAttribute("aria-current", "date");
+
+        const star = document.createElement("span");
+        star.className = "today-star";
+        star.textContent = "✦";
+        star.setAttribute("aria-hidden", "true");
+        cell.appendChild(star);
+      }
+
+      const name = document.createElement("span");
+      name.className = "weekday";
+      name.textContent = weekdayFormatter.format(d);
+
+      const number = document.createElement("span");
+      number.className = "date";
+      number.textContent = d.getDate();
+
+      cell.append(name, number);
+      week.appendChild(cell);
+    }
+
+    const first = dates[0];
+    const last = dates[6];
+
+    range.textContent =
+      first.getMonth() === last.getMonth()
+        ? `${monthFormatter.format(first)} ${first.getDate()} – ${last.getDate()}, ${last.getFullYear()}`
+        : `${monthFormatter.format(first)} ${first.getDate()} – ${monthFormatter.format(last)} ${last.getDate()}, ${last.getFullYear()}`;
+  </script>
+</body>
+</html>
